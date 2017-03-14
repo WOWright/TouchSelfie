@@ -165,7 +165,7 @@ def check_and_snap(force=False, countdown1=None):
         
         if timelapse_due():
             countdown1 = 0
-        im = snap(can, countdown1=countdown1, effect='None')
+        im = snap(can, countdown1=countdown1, effect='GS')
 #        setLights(r_var.get(), g_var.get(), b_var.get())
         if im is not None:
             if custom.TIMELAPSE > 0:
@@ -231,6 +231,7 @@ def force_snap(countdown1=None):
 
 #if they enter an email address send photo. add error checking
 def sendPic(*args):
+    image_idx = len(glob.glob(os.path.join(custom.archive_dir, '%s_*.%s' % (custom.PROC_FILENAME[:-4], custom.EXT))))-1
     if signed_in:
         print 'sending photo by email to %s' % email_addr.get()
         try:
@@ -238,6 +239,7 @@ def sendPic(*args):
                      custom.emailSubject,
                      custom.emailMsg,
                      custom.PROC_FILENAME)
+            email_logger.log("Success", email_addr.get().strip(), '%s_%05d.%s' % (custom.PROC_FILENAME[:-4], image_idx, custom.EXT))
             etext.delete(0, END)
             etext.focus_set()
             kill_tkkb()
@@ -252,8 +254,14 @@ def sendPic(*args):
             display_image(im)
             can.create_text(WIDTH/2, HEIGHT - STATUS_H_OFFSET, text="Press button when ready", font=custom.CANVAS_FONT, tags="text")
             can.update()
+            email_logger.log("Failed", email_addr.get().strip(), '%s_%05d.%s' % (custom.PROC_FILENAME[:-4], image_idx, custom.EXT))
+            etext.delete(0, END)
+            etext.focus_set()
     else:
         print 'Not signed in'
+        email_logger.log("Failed", email_addr.get().strip(), '%s_%05d.%s' % (custom.PROC_FILENAME[:-4], image_idx, custom.EXT))
+        etext.delete(0, END)
+        etext.focus_set()
 
 #ser = findser()
 

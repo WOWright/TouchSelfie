@@ -4,6 +4,8 @@ import glob
 import os
 import os.path
 import time
+import SimpleCV as scv
+
 try:
     import picamera as mycamera
 except ImportError:
@@ -96,16 +98,16 @@ def setLights(r, g, b):
     rgb_command = 'c%s%s%s' % (chr(r), chr(g), chr(b))
 #    ser.write(rgb_command)
 
-def snap(can, countdown1, effect='None'):
+def snap(can, countdown1, effect='GS'):
     global image_idx
 
     try:
-        if custom.ARCHIVE and os.path.exists(custom.archive_dir) and os.path.exists(custom.PROC_FILENAME):
-            ### copy image to archive
-            image_idx += 1
-            new_filename = os.path.join(custom.archive_dir, '%s_%05d.%s' % (custom.PROC_FILENAME[:-4], image_idx, custom.EXT))
-            command = (['cp', custom.PROC_FILENAME, new_filename])
-            call(command)
+##        if custom.ARCHIVE and os.path.exists(custom.archive_dir) and os.path.exists(custom.PROC_FILENAME):
+##            ### copy image to archive
+##            image_idx += 1
+##            new_filename = os.path.join(custom.archive_dir, '%s_%05d.%s' % (custom.PROC_FILENAME[:-4], image_idx, custom.EXT))
+##            command = (['cp', custom.PROC_FILENAME, new_filename])
+##            call(command)
         camera = mycamera.PiCamera()
         countdown(camera, can, countdown1)
         if effect == 'None':
@@ -143,7 +145,14 @@ def snap(can, countdown1, effect='None'):
             snapshot.paste(Image.open(custom.RAW_FILENAME[:-4] + '_2.' + custom.EXT).resize((683, 384)), (683,   0, 1366, 384))
             snapshot.paste(Image.open(custom.RAW_FILENAME[:-4] + '_3.' + custom.EXT).resize((683, 384)), (  0, 384,  683, 768))
             snapshot.paste(Image.open(custom.RAW_FILENAME[:-4] + '_4.' + custom.EXT).resize((683, 384)), (683, 384, 1366, 768))
-            
+        elif effect == "GS":
+            #implement green screen effect
+            camera.capture(custom.RAW_FILENAME, resize=(1366, 768))
+            gs = scv.Image(custom.RAW_FILENAME)
+            background = scv.Image("/home/pi/git/TouchSelfie/Photos/NCRInventions.png")
+            matte = gs.hueDistance(color=scv.Color.GREEN, minvalue = 70).binarize()
+            snapshot = ((gs-matte)+(background-matte.invert())).getPIL()
+    
         camera.close()
             
     
@@ -159,6 +168,16 @@ def snap(can, countdown1, effect='None'):
             snapshot.paste(custom.logo,(xoff, yoff),
                            custom.logo)
         snapshot.save(custom.PROC_FILENAME)
+        
+        if custom.ARCHIVE and os.path.exists(custom.archive_dir) and os.path.exists(custom.PROC_FILENAME):
+            ### copy image to archive
+            print 'snapTry_%05d' % (image_idx)
+            new_filename = os.path.join(custom.archive_dir, '%s_%05d.%s' % (custom.PROC_FILENAME[:-4], image_idx, custom.EXT))
+            ######print '%s_%05d.%s' % (custom.PROC_FILENAME[:-4], image_idx, custom.EXT)
+            command = (['cp', custom.PROC_FILENAME, new_filename])
+            call(command)
+            image_idx += 1
+            
     except Exception, e:
         print e
         snapshot = None
